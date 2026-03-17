@@ -1,6 +1,7 @@
 import { useState, useEffect } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import { ChevronLeft, ChevronRight } from "lucide-react";
+import { cn } from "@/lib/utils";
 
 const slides = [
   {
@@ -11,7 +12,7 @@ const slides = [
   {
     title: "Live Betting",
     subtitle: "Bet on matches happening right now",
-    gradient: "from-naija-live/80 to-naija-live/40",
+    gradient: "from-destructive/80 to-destructive/40",
   },
   {
     title: "Aviator Crash Game",
@@ -63,8 +64,5 @@ const HeroBanner = () => {
     </div>
   );
 };
-
-// Need cn import
-import { cn } from "@/lib/utils";
 
 export default HeroBanner;
