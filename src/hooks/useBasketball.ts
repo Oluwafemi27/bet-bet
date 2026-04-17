@@ -1,4 +1,5 @@
 import { useQuery } from "@tanstack/react-query";
+import { isGameLiveOrUpcoming, GAMES_HOURLY_REFETCH_INTERVAL } from "@/utils/gameFilter";
 
 export interface BasketballGame {
   id: string;
@@ -107,7 +108,12 @@ export function useBasketball(liveOnly = false) {
     queryKey: ["basketball", liveOnly],
     queryFn: fetchBasketball,
     staleTime: 1000 * 60 * 2,
-    refetchInterval: liveOnly ? 15000 : 1000 * 60 * 5,
-    select: (games) => (liveOnly ? games.filter((g) => g.isLive) : games),
+    refetchInterval: GAMES_HOURLY_REFETCH_INTERVAL,
+    select: (games) => {
+      // Filter to only live or upcoming games
+      const filtered = games.filter((g) => isGameLiveOrUpcoming(g.commence_time));
+      // If liveOnly is requested, further filter to only live games
+      return liveOnly ? filtered.filter((g) => g.isLive) : filtered;
+    },
   });
 }
