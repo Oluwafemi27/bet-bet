@@ -4,6 +4,7 @@ import { Tv, Loader2, ArrowLeft, Radio, ChevronLeft, ChevronRight } from "lucide
 import { supabase } from "@/integrations/supabase/client";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
+import * as sportsApi from "@/services/sportsStreamService";
 
 interface Sport {
   id: string;
@@ -62,18 +63,24 @@ const WatchLive = () => {
   // Load sports list once
   useEffect(() => {
     (async () => {
-      const { data } = await supabase.functions.invoke("get-streams", {
-        body: null,
-        method: "GET" as never,
-      }).catch(() => ({ data: null } as { data: null }));
-      // invoke doesn't pass query string easily; use direct fetch
       try {
-        const url = `https://wfyisqyqlijmaifunhqv.supabase.co/functions/v1/get-streams?action=sports`;
-        const r = await fetch(url);
-        const j = await r.json();
-        if (j?.success && Array.isArray(j.data)) setSports(j.data);
-      } catch {
-        /* keep fallback */
+        // Try new API first
+        const categories = await sportsApi.fetchSportCategories();
+        if (categories.length > 0) {
+          setSports(categories);
+        } else {
+          // Fallback to Supabase function
+          try {
+            const url = `https://wfyisqyqlijmaifunhqv.supabase.co/functions/v1/get-streams?action=sports`;
+            const r = await fetch(url);
+            const j = await r.json();
+            if (j?.success && Array.isArray(j.data)) setSports(j.data);
+          } catch {
+            /* keep hardcoded fallback */
+          }
+        }
+      } catch (error) {
+        console.error("Failed to load sports categories:", error);
       }
       setTimeout(checkScroll, 50);
     })();
@@ -96,11 +103,23 @@ const WatchLive = () => {
     setLoadingMatches(true);
     (async () => {
       try {
-        const url = `https://wfyisqyqlijmaifunhqv.supabase.co/functions/v1/get-streams?action=matches&category=${encodeURIComponent(category)}`;
-        const r = await fetch(url);
-        const j = await r.json();
-        setMatches(j?.success && Array.isArray(j.data) ? j.data : []);
-      } catch {
+        // Try new API first
+        const apiMatches = await sportsApi.fetchMatches(category);
+        if (apiMatches.length > 0) {
+          setMatches(apiMatches);
+        } else {
+          // Fallback to Supabase function
+          try {
+            const url = `https://wfyisqyqlijmaifunhqv.supabase.co/functions/v1/get-streams?action=matches&category=${encodeURIComponent(category)}`;
+            const r = await fetch(url);
+            const j = await r.json();
+            setMatches(j?.success && Array.isArray(j.data) ? j.data : []);
+          } catch {
+            setMatches([]);
+          }
+        }
+      } catch (error) {
+        console.error("Failed to load matches:", error);
         setMatches([]);
       } finally {
         setLoadingMatches(false);
@@ -113,10 +132,23 @@ const WatchLive = () => {
     setActiveSourceIdx(0);
     setSelected({ ...m, sources: [] });
     try {
-      const url = `https://wfyisqyqlijmaifunhqv.supabase.co/functions/v1/get-streams?action=detail&category=${encodeURIComponent(category)}&id=${encodeURIComponent(m.id)}`;
-      const r = await fetch(url);
-      const j = await r.json();
-      if (j?.success && j.data) setSelected(j.data);
+      // Try new API first
+      const detail = await sportsApi.fetchMatchDetail(category, m.id);
+      if (detail) {
+        setSelected(detail);
+      } else {
+        // Fallback to Supabase function
+        try {
+          const url = `https://wfyisqyqlijmaifunhqv.supabase.co/functions/v1/get-streams?action=detail&category=${encodeURIComponent(category)}&id=${encodeURIComponent(m.id)}`;
+          const r = await fetch(url);
+          const j = await r.json();
+          if (j?.success && j.data) setSelected(j.data);
+        } catch (error) {
+          console.error("Fallback API also failed:", error);
+        }
+      }
+    } catch (error) {
+      console.error("Failed to load match detail:", error);
     } finally {
       setLoadingDetail(false);
     }
