@@ -3,6 +3,7 @@ import HeroBanner from "@/components/HeroBanner";
 import MatchCard from "@/components/MatchCard";
 import MatchSkeleton from "@/components/MatchSkeleton";
 import { useOdds } from "@/hooks/useOddsApi";
+import { formatGameDay } from "@/utils/formatGameDay";
 import { useState } from "react";
 import { cn } from "@/lib/utils";
 import { Link } from "react-router-dom";
@@ -42,6 +43,7 @@ const Index = () => {
       awayOdds: event.bookmakers?.[0]?.markets?.[0]?.outcomes?.find((o: any) => o.name === event.away_team)?.price || 2.5,
       league: event.sport_title,
       time: new Date(event.commence_time).toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" }),
+      dayLabel: formatGameDay(event.commence_time),
     }));
 
   return (

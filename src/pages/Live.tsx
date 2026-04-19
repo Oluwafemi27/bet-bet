@@ -2,6 +2,7 @@ import Layout from "@/components/layout/Layout";
 import MatchCard from "@/components/MatchCard";
 import MatchSkeleton from "@/components/MatchSkeleton";
 import { useOdds } from "@/hooks/useOddsApi";
+import { formatGameDay } from "@/utils/formatGameDay";
 import { Badge } from "@/components/ui/badge";
 import { Zap } from "lucide-react";
 
@@ -21,6 +22,7 @@ const Live = () => {
       league: event.sport_title,
       isLive: true,
       time: "LIVE",
+      dayLabel: formatGameDay(event.commence_time),
     }));
 
   return (
