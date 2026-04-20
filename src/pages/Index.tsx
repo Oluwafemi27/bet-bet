@@ -48,7 +48,7 @@ const Index = () => {
 
   return (
     <Layout>
-      <div className="container space-y-6 py-4">
+      <div className="container space-y-6 py-4 min-h-full">
         <HeroBanner />
 
         {/* Quick Links */}

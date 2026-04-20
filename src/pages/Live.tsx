@@ -115,7 +115,7 @@ const Live = () => {
 
   return (
     <Layout>
-      <div className="container space-y-4 py-4">
+      <div className="container space-y-4 py-4 min-h-full">
         <div className="flex items-center gap-2">
           <Zap className="h-6 w-6 text-destructive" />
           <h1 className="font-display text-2xl font-bold">Live Betting</h1>
@@ -186,9 +186,6 @@ const Live = () => {
                   <Zap className="mx-auto mb-2 h-10 w-10" />
                   <p>No live matches right now</p>
                   <p className="text-xs">Showing games currently live or starting within 30 minutes</p>
-                  {!footballLoading && !basketballLoading && !boxingLoading && (
-                    <p className="text-xs mt-2 text-yellow-600">Make sure API keys are configured in Supabase for live data</p>
-                  )}
                 </div>
               )}
         </div>
