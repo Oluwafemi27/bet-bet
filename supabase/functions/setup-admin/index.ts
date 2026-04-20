@@ -14,7 +14,7 @@ serve(async (req) => {
   try {
     const serviceRoleKey = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY');
     const supabaseUrl = Deno.env.get('SUPABASE_URL');
-    
+
     if (!serviceRoleKey || !supabaseUrl) {
       throw new Error('Missing environment variables');
     }
@@ -25,51 +25,82 @@ serve(async (req) => {
     const password = 'Sijuade27#';
     const fullName = 'Oluwafemi';
 
-    // Create user in auth
+    let userId: string | undefined;
+
+    // Create user in auth (or get existing)
     const { data: authData, error: authError } = await supabase.auth.admin.createUser({
       email,
       password,
       email_confirm: true,
     });
 
-    if (authError && !authError.message.includes('already exists')) {
+    // If user already exists, try to get them
+    if (authError?.message?.includes('already exists')) {
+      // Query to get the user ID - we'll use a workaround
+      const { data: users } = await supabase
+        .from('profiles')
+        .select('id')
+        .eq('email', email);
+
+      if (users && users.length > 0) {
+        userId = users[0].id;
+      }
+    } else if (authError) {
       throw authError;
+    } else {
+      userId = authData?.user?.id;
     }
 
-    const userId = authData?.user?.id;
     if (!userId) {
-      throw new Error('Failed to create user');
+      throw new Error('Failed to get or create user');
     }
 
-    // Create profile
-    const { data: profileData, error: profileError } = await supabase
+    // Check if profile exists
+    const { data: existingProfile } = await supabase
       .from('profiles')
-      .insert({
-        id: userId,
-        full_name: fullName,
-        email,
-        balance: 0,
-        bonus_balance: 0,
-        kyc_verified: false,
-        referral_code: Math.random().toString(36).substring(2, 11).toUpperCase(),
-      })
-      .select()
-      .single();
+      .select('id')
+      .eq('id', userId);
 
-    if (profileError && !profileError.message.includes('duplicate')) {
-      console.error('Profile error:', profileError);
+    if (!existingProfile || existingProfile.length === 0) {
+      // Create profile if it doesn't exist
+      const { error: profileError } = await supabase
+        .from('profiles')
+        .insert({
+          id: userId,
+          full_name: fullName,
+          email,
+          balance: 0,
+          bonus_balance: 0,
+          kyc_verified: false,
+          referral_code: Math.random().toString(36).substring(2, 11).toUpperCase(),
+        });
+
+      if (profileError) {
+        console.error('Profile creation error:', profileError);
+        throw new Error(`Profile creation failed: ${profileError.message}`);
+      }
     }
 
-    // Set user as admin
-    const { error: roleError } = await supabase
+    // Check if user already has admin role
+    const { data: existingRole } = await supabase
       .from('user_roles')
-      .insert({
-        user_id: userId,
-        role: 'admin',
-      });
+      .select('id')
+      .eq('user_id', userId)
+      .eq('role', 'admin');
 
-    if (roleError && !roleError.message.includes('duplicate')) {
-      console.error('Role error:', roleError);
+    if (!existingRole || existingRole.length === 0) {
+      // Set user as admin
+      const { error: roleError } = await supabase
+        .from('user_roles')
+        .insert({
+          user_id: userId,
+          role: 'admin',
+        });
+
+      if (roleError) {
+        console.error('Role assignment error:', roleError);
+        throw new Error(`Role assignment failed: ${roleError.message}`);
+      }
     }
 
     return new Response(

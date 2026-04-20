@@ -24,6 +24,7 @@ import Admin from "./pages/Admin";
 import MyBets from "./pages/MyBets";
 import BetHistory from "./pages/BetHistory";
 import Setup from "./pages/Setup";
+import Debug from "./pages/Debug";
 import NotFound from "./pages/NotFound";
 
 const queryClient = new QueryClient();
@@ -53,6 +54,7 @@ const App = () => (
                 <Route path="/promotions" element={<Promotions />} />
                 <Route path="/admin" element={<Admin />} />
                 <Route path="/setup" element={<Setup />} />
+                <Route path="/debug" element={<Debug />} />
                 <Route path="/my-bets" element={<MyBets />} />
                 <Route path="/bet-history" element={<BetHistory />} />
                 <Route path="*" element={<NotFound />} />
