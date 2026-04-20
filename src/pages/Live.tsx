@@ -22,17 +22,19 @@ const Live = () => {
 
   const isLoading = footballLoading || basketballLoading || boxingLoading;
 
-  // 30 minutes window: show only matches starting within 30 mins from now
+  // Show games that are currently live (started within 4 hours) or starting soon (within 30 mins)
   const now = Date.now();
-  const thirtyMinutesMs = 30 * 60 * 1000;
+  const liveWindowMs = 4 * 60 * 60 * 1000; // 4 hours after start
+  const upcomingWindowMs = 30 * 60 * 1000; // 30 minutes in future
 
-  // Process football matches
+  // Process football matches - show live (started <4hrs ago) or upcoming (starts within 30 mins)
   const footballMatches = (odds || [])
     .filter((event: any) => {
       const startTime = new Date(event.commence_time).getTime();
       const timeUntilStart = startTime - now;
-      // Show only matches within 30 mins (including already started, up to 30 mins in future)
-      return timeUntilStart >= -4 * 60 * 60 * 1000 && timeUntilStart <= thirtyMinutesMs;
+      const isLive = timeUntilStart >= -liveWindowMs && timeUntilStart < 0;
+      const isUpcoming = timeUntilStart >= 0 && timeUntilStart <= upcomingWindowMs;
+      return isLive || isUpcoming;
     })
     .map((event: any) => ({
       id: event.id,
@@ -48,12 +50,14 @@ const Live = () => {
       dayLabel: formatGameDay(event.commence_time),
     }));
 
-  // Process basketball games
+  // Process basketball games - show live (started <4hrs ago) or upcoming (starts within 30 mins)
   const basketballMatches = (basketballGames || [])
     .filter((game: any) => {
       const startTime = new Date(game.commence_time).getTime();
       const timeUntilStart = startTime - now;
-      return timeUntilStart >= -4 * 60 * 60 * 1000 && timeUntilStart <= thirtyMinutesMs;
+      const isLive = timeUntilStart >= -liveWindowMs && timeUntilStart < 0;
+      const isUpcoming = timeUntilStart >= 0 && timeUntilStart <= upcomingWindowMs;
+      return isLive || isUpcoming;
     })
     .map((game: any) => ({
       id: game.id,
@@ -71,13 +75,15 @@ const Live = () => {
       dayLabel: formatGameDay(game.commence_time),
     }));
 
-  // Process boxing events
+  // Process boxing events - show live (started <4hrs ago) or upcoming (starts within 30 mins)
   const boxingMatches = (boxingEvents || [])
     .filter((event: any) => {
       const startTime = event.timestamp ? new Date(event.timestamp).getTime() : 0;
       if (!startTime) return false;
       const timeUntilStart = startTime - now;
-      return timeUntilStart >= -4 * 60 * 60 * 1000 && timeUntilStart <= thirtyMinutesMs;
+      const isLive = timeUntilStart >= -liveWindowMs && timeUntilStart < 0;
+      const isUpcoming = timeUntilStart >= 0 && timeUntilStart <= upcomingWindowMs;
+      return isLive || isUpcoming;
     })
     .map((event: any) => ({
       id: event.id,
@@ -178,8 +184,11 @@ const Live = () => {
               : (
                 <div className="rounded-xl border border-border bg-card p-8 text-center text-muted-foreground">
                   <Zap className="mx-auto mb-2 h-10 w-10" />
-                  <p>No live matches starting soon</p>
-                  <p className="text-xs">Matches must start within 30 minutes to appear here</p>
+                  <p>No live matches right now</p>
+                  <p className="text-xs">Showing games currently live or starting within 30 minutes</p>
+                  {!footballLoading && !basketballLoading && !boxingLoading && (
+                    <p className="text-xs mt-2 text-yellow-600">Make sure API keys are configured in Supabase for live data</p>
+                  )}
                 </div>
               )}
         </div>
