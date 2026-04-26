@@ -137,21 +137,23 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     };
 
     // Set up auth state listener
-    supabase.auth.onAuthStateChange(async (_event, session) => {
-      if (!isMountedRef.current) return;
+    const { data: { subscription: authSubscription } } = supabase.auth.onAuthStateChange(
+      async (_event, session) => {
+        if (!isMountedRef.current) return;
 
-      setSession(session);
-      setUser(session?.user ?? null);
+        setSession(session);
+        setUser(session?.user ?? null);
 
-      if (session?.user) {
-        await fetchProfile(session.user.id);
-      } else {
-        setProfile(null);
+        if (session?.user) {
+          await fetchProfile(session.user.id);
+        } else {
+          setProfile(null);
+        }
+        setLoading(false);
       }
-      setLoading(false);
-    }).then((result) => {
-      subscription = result.data.subscription;
-    });
+    );
+
+    subscription = authSubscription;
 
     // Initialize auth
     initAuth();
