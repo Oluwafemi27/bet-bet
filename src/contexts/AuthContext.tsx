@@ -106,13 +106,8 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
 
     const initAuth = async () => {
       try {
-        // Set a timeout for initial session retrieval
-        const sessionPromise = supabase.auth.getSession();
-        const timeoutPromise = new Promise<{ data: { session: null } }>(
-          (resolve) => setTimeout(() => resolve({ data: { session: null } }), 3000)
-        );
-
-        const { data: { session } } = await Promise.race([sessionPromise, timeoutPromise]);
+        // Get the session without timeout - Supabase handles caching
+        const { data: { session } } = await supabase.auth.getSession();
 
         if (!isMountedRef.current) return;
 
