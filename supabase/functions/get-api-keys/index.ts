@@ -10,13 +10,13 @@ serve(async (req) => {
     return new Response(null, { headers: corsHeaders });
   }
 
-  const oddsApiKey = Deno.env.get('THE_ODDS_API_KEY');
-  const rapidApiKey = Deno.env.get('RAPIDAPI_KEY');
-
+  // This function has been disabled for security reasons.
+  // API keys should never be exposed to the client.
   return new Response(JSON.stringify({
-    oddsApiKey: oddsApiKey || '',
-    rapidApiKey: rapidApiKey || '',
+    error: 'This function is no longer available',
+    message: 'API keys are managed server-side only'
   }), {
+    status: 410,
     headers: { ...corsHeaders, 'Content-Type': 'application/json' },
   });
 });

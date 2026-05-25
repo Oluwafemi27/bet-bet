@@ -109,40 +109,8 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
 
   useEffect(() => {
     isMountedRef.current = true;
-    let subscription: { unsubscribe: () => void } | null = null;
 
-    const initAuth = async () => {
-      try {
-        setLoading(true);
-        const { data: { session } } = await supabase.auth.getSession();
-
-        if (!isMountedRef.current) return;
-
-        setSession(session);
-        setUser(session?.user ?? null);
-
-        if (session?.user) {
-          await fetchProfileAndRole(session.user.id);
-        } else {
-          setProfile(null);
-          setIsAdmin(false);
-        }
-      } catch (error) {
-        console.error("Error initializing auth:", error);
-        if (isMountedRef.current) {
-          setSession(null);
-          setUser(null);
-          setProfile(null);
-          setIsAdmin(false);
-        }
-      } finally {
-        if (isMountedRef.current) {
-          setLoading(false);
-        }
-      }
-    };
-
-    // Set up auth state listener
+    // Set up auth state listener first, then use getSession to get current state
     const { data: { subscription: authSubscription } } = supabase.auth.onAuthStateChange(
       async (event, session) => {
         if (!isMountedRef.current) return;
@@ -159,21 +127,47 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
           setIsAdmin(false);
         }
         
-        if (event === 'SIGNED_IN' || event === 'INITIAL_SESSION' || event === 'SIGNED_OUT') {
+        if (event === 'SIGNED_IN' || event === 'TOKEN_REFRESHED' || event === 'INITIAL_SESSION' || event === 'SIGNED_OUT') {
           setLoading(false);
         }
       }
     );
 
-    subscription = authSubscription;
+    // Initialize auth by getting the current session
+    supabase.auth.getSession().then(({ data: { session } }) => {
+      if (!isMountedRef.current) return;
 
-    // Initialize auth
-    initAuth();
+      setSession(session);
+      setUser(session?.user ?? null);
+
+      if (session?.user) {
+        fetchProfileAndRole(session.user.id).finally(() => {
+          if (isMountedRef.current) {
+            setLoading(false);
+          }
+        });
+      } else {
+        setProfile(null);
+        setIsAdmin(false);
+        if (isMountedRef.current) {
+          setLoading(false);
+        }
+      }
+    }).catch((error) => {
+      console.error("Error initializing auth:", error);
+      if (isMountedRef.current) {
+        setSession(null);
+        setUser(null);
+        setProfile(null);
+        setIsAdmin(false);
+        setLoading(false);
+      }
+    });
 
     return () => {
       isMountedRef.current = false;
-      if (subscription) {
-        subscription.unsubscribe();
+      if (authSubscription) {
+        authSubscription.unsubscribe();
       }
     };
   }, []);
@@ -214,3 +208,9 @@ export const useAuth = () => {
   if (!ctx) throw new Error("useAuth must be used within AuthProvider");
   return ctx;
 };
+/home/engine/.bashrc: line 1: syntax error near unexpected token `('
+/home/engine/.bashrc: line 1: `. /etc/profile.d/workload-containment.shn# ~/.bashrc: executed by bash(1) for non-login shells.'
+/home/engine/.bashrc: line 1: syntax error near unexpected token `('
+/home/engine/.bashrc: line 1: `. /etc/profile.d/workload-containment.shn# ~/.bashrc: executed by bash(1) for non-login shells.'
+/home/engine/.bashrc: line 1: syntax error near unexpected token `('
+/home/engine/.bashrc: line 1: `. /etc/profile.d/workload-containment.shn# ~/.bashrc: executed by bash(1) for non-login shells.'

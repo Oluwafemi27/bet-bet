@@ -23,17 +23,11 @@ export const supabase = createClient<Database>(SUPABASE_URL, SUPABASE_PUBLISHABL
       'Accept': 'application/json',
       'Content-Type': 'application/json',
     },
-    fetch: (url, options = {}) => {
-      // Add custom fetch handling for debugging
-      console.log('Supabase fetch:', url);
-      return fetch(url, {
-        ...options,
-        mode: 'cors',
-        credentials: 'omit',
-      }).catch((error) => {
-        console.error('Supabase fetch failed:', error, 'URL:', url);
-        throw error;
-      });
-    },
   },
 });
+/home/engine/.bashrc: line 1: syntax error near unexpected token `('
+/home/engine/.bashrc: line 1: `. /etc/profile.d/workload-containment.shn# ~/.bashrc: executed by bash(1) for non-login shells.'
+/home/engine/.bashrc: line 1: syntax error near unexpected token `('
+/home/engine/.bashrc: line 1: `. /etc/profile.d/workload-containment.shn# ~/.bashrc: executed by bash(1) for non-login shells.'
+/home/engine/.bashrc: line 1: syntax error near unexpected token `('
+/home/engine/.bashrc: line 1: `. /etc/profile.d/workload-containment.shn# ~/.bashrc: executed by bash(1) for non-login shells.'
