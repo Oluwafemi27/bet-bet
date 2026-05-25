@@ -5,6 +5,16 @@ const corsHeaders = {
   'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type',
 };
 
+interface Game {
+  id: string;
+  home_team: string;
+  away_team: string;
+  commence_time: number;
+  status: string;
+  isLive: boolean;
+  league: string;
+}
+
 serve(async (req) => {
   if (req.method === 'OPTIONS') {
     return new Response(null, { headers: corsHeaders });
@@ -20,7 +30,7 @@ serve(async (req) => {
     }
 
     const now = new Date();
-    const games: any[] = [];
+    const games: Game[] = [];
     const currentTime = Math.floor(now.getTime() / 1000);
     const liveWindow = 2 * 60 * 60; // 2 hours after start = still "live"
 
