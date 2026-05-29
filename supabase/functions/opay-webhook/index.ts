@@ -18,6 +18,12 @@ serve(async (req) => {
     const OPAY_SECRET_KEY = Deno.env.get('OPAY_SECRET_KEY');
     const supabase = createClient(supabaseUrl, supabaseServiceKey);
 
+    console.log('OPay webhook invoked - checking credentials:', {
+      hasSupabaseUrl: !!supabaseUrl,
+      hasServiceKey: !!supabaseServiceKey,
+      hasOpaySecretKey: !!OPAY_SECRET_KEY,
+    });
+
     const bodyText = await req.text();
     const signature = req.headers.get('X-Opay-Signature') || req.headers.get('opay-signature');
 
