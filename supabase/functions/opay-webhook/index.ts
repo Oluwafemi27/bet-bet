@@ -67,25 +67,45 @@ serve(async (req) => {
     }
 
     if (status === 'SUCCESS' || status === 'completed' || payload.code === '00000') {
-      const { data: success, error: rpcError } = await supabase.rpc('handle_opay_deposit', {
-        _reference: reference,
-        _amount: finalAmount,
-        _metadata: payload
-      });
-
-      if (rpcError) {
-        console.error('RPC Error in handle_opay_deposit:', JSON.stringify(rpcError));
-        return new Response(JSON.stringify({ error: rpcError.message, details: JSON.stringify(rpcError) }), { status: 500, headers: { ...corsHeaders, 'Content-Type': 'application/json' } });
-      }
-
-      // If success is false, the transaction was already processed or doesn't exist
-      // In either case, acknowledge receipt with 200 to prevent OPay from retrying
-      if (success === false) {
-        console.log(`Transaction ${reference} was already processed or not found. Acknowledging.`);
-        return new Response(JSON.stringify({ success: true, message: 'Already processed' }), { 
-          status: 200,
-          headers: { ...corsHeaders, 'Content-Type': 'application/json' }
+      if (reference.startsWith('DEP_')) {
+        const { data: success, error: rpcError } = await supabase.rpc('handle_opay_deposit', {
+          _reference: reference,
+          _amount: finalAmount,
+          _metadata: payload
         });
+
+        if (rpcError) {
+          console.error('RPC Error in handle_opay_deposit:', JSON.stringify(rpcError));
+          return new Response(JSON.stringify({ error: rpcError.message, details: JSON.stringify(rpcError) }), { status: 500, headers: { ...corsHeaders, 'Content-Type': 'application/json' } });
+        }
+
+        if (success === false) {
+          console.log(`Transaction ${reference} was already processed or not found. Acknowledging.`);
+          return new Response(JSON.stringify({ success: true, message: 'Already processed' }), { 
+            status: 200,
+            headers: { ...corsHeaders, 'Content-Type': 'application/json' }
+          });
+        }
+      } else if (reference.startsWith('WIT_')) {
+        // For withdrawals, the balance was already deducted when initiated.
+        // We just need to mark the transaction as completed.
+        const { error: updateError } = await supabase
+          .from('transactions')
+          .update({ 
+            status: 'completed', 
+            metadata: payload, 
+            updated_at: new Date().toISOString() 
+          })
+          .eq('reference', reference)
+          .eq('status', 'pending');
+
+        if (updateError) {
+          console.error('Failed to update withdrawal to completed:', {
+            reference,
+            error: JSON.stringify(updateError),
+          });
+          return new Response(JSON.stringify({ error: updateError.message }), { status: 500, headers: { ...corsHeaders, 'Content-Type': 'application/json' } });
+        }
       }
 
       console.log(`Transaction ${reference} processed successfully.`);
@@ -97,24 +117,38 @@ serve(async (req) => {
 
     // Handle failed/cancelled transactions
     if (['FAIL', 'FAILED', 'CANCELLED', 'EXPIRED'].includes(status)) {
-      const { error: updateError } = await supabase
-        .from('transactions')
-        .update({ 
-          status: 'failed', 
-          metadata: payload, 
-          updated_at: new Date().toISOString() 
-        })
-        .eq('reference', reference)
-        .eq('status', 'pending');
-      
-      if (updateError) {
-        console.error('Failed to update transaction to failed/cancelled:', {
-          reference,
-          status,
-          error: JSON.stringify(updateError),
+      if (reference.startsWith('WIT_')) {
+        // For withdrawals, we need to refund the balance
+        const { data: success, error: refundError } = await supabase.rpc('refund_withdrawal', {
+          _reference: reference
         });
+
+        if (refundError) {
+          console.error('RPC Error in refund_withdrawal:', JSON.stringify(refundError));
+          return new Response(JSON.stringify({ error: refundError.message }), { status: 500, headers: { ...corsHeaders, 'Content-Type': 'application/json' } });
+        }
+        
+        console.log(`Withdrawal ${reference} refunded. Success: ${success}`);
       } else {
-        console.log(`Transaction ${reference} marked as failed/cancelled.`);
+        // For deposits, just mark as failed
+        const { error: updateError } = await supabase
+          .from('transactions')
+          .update({ 
+            status: 'failed', 
+            metadata: payload, 
+            updated_at: new Date().toISOString() 
+          })
+          .eq('reference', reference)
+          .eq('status', 'pending');
+        
+        if (updateError) {
+          console.error('Failed to update deposit to failed:', {
+            reference,
+            error: JSON.stringify(updateError),
+          });
+        } else {
+          console.log(`Deposit ${reference} marked as failed.`);
+        }
       }
     }
 
