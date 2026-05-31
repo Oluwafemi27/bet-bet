@@ -45,7 +45,7 @@ async function markAsFailed(
   });
 
   try {
-    await supabase
+    const { error: updateError } = await supabase
       .from('transactions')
       .update({
         status: 'failed',
@@ -60,8 +60,16 @@ async function markAsFailed(
       })
       .eq('reference', reference)
       .eq('status', 'pending');
+
+    if (updateError) {
+      console.error('Database error marking transaction as failed:', {
+        reference,
+        error: updateError.message,
+        details: updateError.details,
+      });
+    }
   } catch (dbError) {
-    console.error('Failed to update transaction status in DB:', {
+    console.error('Exception marking transaction as failed in DB:', {
       reference,
       error: dbError.message,
     });
@@ -95,14 +103,14 @@ async function logStep(
 
   try {
     // Initialize steps array if it doesn't exist
-    const currentSteps = existingMetadata?.steps as Array<Record<string, unknown>> | undefined;
-    const stepsArray = currentSteps ? [...currentSteps, stepEntry] : [stepEntry];
+    const currentSteps = (existingMetadata?.steps as Array<Record<string, unknown>>) || [];
+    const stepsArray = [...currentSteps, stepEntry];
 
-    await supabase
+    const { error: updateError } = await supabase
       .from('transactions')
       .update({
         metadata: {
-          ...existingMetadata,
+          ...(existingMetadata || {}),
           steps: stepsArray,
           currentStep: step,
         },
@@ -110,8 +118,15 @@ async function logStep(
       })
       .eq('reference', reference)
       .eq('status', 'pending');
+
+    if (updateError) {
+      console.error(`Database error logging step ${step} for transaction ${reference}:`, {
+        error: updateError.message,
+        details: updateError.details,
+      });
+    }
   } catch (dbError) {
-    console.error(`Failed to log step ${step} for transaction ${reference}:`, {
+    console.error(`Exception logging step ${step} for transaction ${reference}:`, {
       error: dbError.message,
     });
   }
@@ -197,10 +212,12 @@ serve(async (req) => {
       });
     }
 
-    // OPay configuration
     const OPAY_MERCHANT_ID = Deno.env.get('OPAY_MERCHANT_ID');
     const OPAY_PUBLIC_KEY = Deno.env.get('OPAY_PUBLIC_KEY');
     const OPAY_SECRET_KEY = Deno.env.get('OPAY_SECRET_KEY');
+    const SUPABASE_URL = Deno.env.get('SUPABASE_URL');
+    const SUPABASE_SERVICE_ROLE_KEY = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY');
+
     // Default to production OPay API URL
     const OPAY_BASE_URL = Deno.env.get('OPAY_BASE_URL') || 'https://api.opaycheckout.com/api/v1';
 
@@ -209,17 +226,27 @@ serve(async (req) => {
       hasMerchantId: !!OPAY_MERCHANT_ID,
       hasPublicKey: !!OPAY_PUBLIC_KEY,
       hasSecretKey: !!OPAY_SECRET_KEY,
+      hasSupabaseUrl: !!SUPABASE_URL,
+      hasServiceKey: !!SUPABASE_SERVICE_ROLE_KEY,
       baseUrl: OPAY_BASE_URL,
     });
 
-    if (!OPAY_MERCHANT_ID || !OPAY_PUBLIC_KEY || !OPAY_SECRET_KEY) {
-      console.error('Missing OPay configuration - one or more required credentials are not set:', {
+    if (!OPAY_MERCHANT_ID || !OPAY_PUBLIC_KEY || !OPAY_SECRET_KEY || !SUPABASE_URL || !SUPABASE_SERVICE_ROLE_KEY) {
+      const missing = [];
+      if (!OPAY_MERCHANT_ID) missing.push('OPAY_MERCHANT_ID');
+      if (!OPAY_PUBLIC_KEY) missing.push('OPAY_PUBLIC_KEY');
+      if (!OPAY_SECRET_KEY) missing.push('OPAY_SECRET_KEY');
+      if (!SUPABASE_URL) missing.push('SUPABASE_URL');
+      if (!SUPABASE_SERVICE_ROLE_KEY) missing.push('SUPABASE_SERVICE_ROLE_KEY');
+
+      console.error('Missing configuration - one or more required environment variables are not set:', {
         traceId,
-        hasMerchantId: !!OPAY_MERCHANT_ID,
-        hasPublicKey: !!OPAY_PUBLIC_KEY,
-        hasSecretKey: !!OPAY_SECRET_KEY,
+        missing,
       });
-      return new Response(JSON.stringify({ error: 'Payment gateway configuration missing' }), {
+      return new Response(JSON.stringify({ 
+        error: 'Payment gateway configuration missing', 
+        details: `Missing environment variables: ${missing.join(', ')}` 
+      }), {
         status: 500,
         headers: { ...corsHeaders, 'Content-Type': 'application/json' },
       });
@@ -377,9 +404,9 @@ serve(async (req) => {
       traceId,
     }, currentMetadata);
     currentMetadata = {
-      ...currentMetadata,
+      ...(currentMetadata || {}),
       steps: [
-        ...(currentMetadata.steps || []),
+        ...((currentMetadata?.steps as Array<Record<string, unknown>>) || []),
         { step: EXECUTION_STEPS.OPAY_API_RESPONDED, timestamp: new Date().toISOString(), httpStatus: response.status },
       ],
     };
