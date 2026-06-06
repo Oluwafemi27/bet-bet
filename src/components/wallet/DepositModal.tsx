@@ -102,16 +102,14 @@ export const DepositModal = ({ isOpen, onClose }: DepositModalProps) => {
 
       if (error) throw new Error(error.message || 'Deposit failed');
 
-      // Map OPay response fields to the VirtualAccountInfo interface
-      setVirtualAccount({
-        bankAccountNumber: data.bankAccountNumber,
-        bankName: data.bankName,
-        bankAccountName: data.bankAccountName,
-        amount: data.amount,
-        expiresIn: 1800,
-      });
-      setReference(data.reference);
-      setTimeLeft(1800);
+      // Open Paystack checkout in same tab
+      if (data.checkoutUrl) {
+        setReference(data.reference);
+        setTimeLeft(1800);
+        window.location.href = data.checkoutUrl;
+      } else {
+        throw new Error('No payment URL returned');
+      }
     } catch (error: unknown) {
       const errorMessage = error instanceof Error ? error.message : "An unexpected error occurred. Please try again.";
       console.error("Deposit error details:", {
