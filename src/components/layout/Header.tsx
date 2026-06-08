@@ -46,18 +46,6 @@ const Header = () => {
             <Search className="h-5 w-5" />
           </button>
 
-          {isAdmin && (
-            <Button 
-              variant="ghost" 
-              size="sm" 
-              onClick={() => navigate("/admin")}
-              className="flex items-center gap-2 bg-amber-600/10 text-amber-600 hover:bg-amber-600 hover:text-white border border-amber-600/20"
-            >
-              <Shield className="h-4 w-4" />
-              <span className="hidden md:inline">Admin</span>
-            </Button>
-          )}
-
           {user && profile ? (
             <>
               {currentBets.length > 0 && (
