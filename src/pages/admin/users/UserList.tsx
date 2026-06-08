@@ -1,4 +1,5 @@
 import React, { useEffect, useState } from "react";
+import { useNavigate } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -13,11 +14,13 @@ interface User {
   email: string;
   balance: number;
   created_at: string;
+  status?: string;
 }
 
 import { AdminPageShell } from "@/components/admin/AdminPageShell";
 
 const UserList: React.FC = () => {
+  const navigate = useNavigate();
   const [users, setUsers] = useState<User[]>([]);
   const [filteredUsers, setFilteredUsers] = useState<User[]>([]);
   const [loading, setLoading] = useState(true);
@@ -61,15 +64,17 @@ const UserList: React.FC = () => {
     toast({ title: "Exported successfully" });
   };
 
-  const handleStatusChange = async (userId: string, newStatus: string) => {
+  const handleStatusChange = async (userId: string, currentStatus: string | undefined) => {
+    const newStatus = currentStatus === 'banned' ? 'active' : 'banned';
     try {
       const { error } = await supabase
         .from("profiles")
         .update({ status: newStatus })
         .eq("id", userId);
-      
+
       if (error) throw error;
-      toast({ title: `User ${newStatus === 'banned' ? 'banned' : 'updated'} successfully` });
+      toast({ title: `User ${newStatus === 'banned' ? 'banned' : 'unbanned'} successfully` });
+      loadUsers();
     } catch (err: any) {
       toast({ title: "Error updating status", description: err.message, variant: "destructive" });
     }
@@ -150,7 +155,11 @@ const UserList: React.FC = () => {
               </div>
 
               <div className="flex gap-2">
-                <Button variant="outline" className="w-full h-10 border-primary/20 hover:border-primary/40 hover:bg-primary/5">
+                <Button
+                  variant="outline"
+                  className="w-full h-10 border-primary/20 hover:border-primary/40 hover:bg-primary/5"
+                  onClick={() => toast({ title: "Filter options coming soon" })}
+                >
                   More Filters
                 </Button>
               </div>
@@ -216,6 +225,7 @@ const UserList: React.FC = () => {
                             size="sm"
                             variant="outline"
                             className="h-8 text-xs border-blue-200/50 hover:border-blue-400/50 hover:bg-blue-50/20 gap-1.5"
+                            onClick={() => navigate(`/admin/users/${user.id}`)}
                           >
                             <Eye className="h-3.5 w-3.5" />
                             View
@@ -223,16 +233,21 @@ const UserList: React.FC = () => {
                           <Button
                             size="sm"
                             variant="outline"
-                            className="h-8 text-xs border-red-200/50 hover:border-red-400/50 hover:bg-red-50/20 gap-1.5"
-                            onClick={() => handleStatusChange(user.id, 'banned')}
+                            className={`h-8 text-xs gap-1.5 ${
+                              user.status === 'banned'
+                                ? 'border-green-200/50 hover:border-green-400/50 hover:bg-green-50/20'
+                                : 'border-red-200/50 hover:border-red-400/50 hover:bg-red-50/20'
+                            }`}
+                            onClick={() => handleStatusChange(user.id, user.status)}
                           >
                             <Lock className="h-3.5 w-3.5" />
-                            Ban
+                            {user.status === 'banned' ? 'Unban' : 'Ban'}
                           </Button>
                           <Button
                             size="icon"
                             variant="ghost"
                             className="h-8 w-8 text-muted-foreground hover:text-foreground"
+                            onClick={() => toast({ title: "Menu options: Coming soon" })}
                           >
                             <MoreVertical className="h-4 w-4" />
                           </Button>

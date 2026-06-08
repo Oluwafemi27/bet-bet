@@ -60,6 +60,45 @@ const Dashboard: React.FC = () => {
 
   useEffect(() => {
     loadDashboardData();
+
+    const channels = [
+      supabase
+        .channel("profiles-changes")
+        .on(
+          "postgres_changes",
+          { event: "*", schema: "public", table: "profiles" },
+          () => loadDashboardData()
+        )
+        .subscribe(),
+      supabase
+        .channel("bets-changes")
+        .on(
+          "postgres_changes",
+          { event: "*", schema: "public", table: "bets" },
+          () => loadDashboardData()
+        )
+        .subscribe(),
+      supabase
+        .channel("transactions-changes")
+        .on(
+          "postgres_changes",
+          { event: "*", schema: "public", table: "transactions" },
+          () => loadDashboardData()
+        )
+        .subscribe(),
+      supabase
+        .channel("fraud-alerts-changes")
+        .on(
+          "postgres_changes",
+          { event: "*", schema: "public", table: "fraud_alerts" },
+          () => loadDashboardData()
+        )
+        .subscribe()
+    ];
+
+    return () => {
+      channels.forEach(channel => supabase.removeChannel(channel));
+    };
   }, []);
 
   const loadDashboardData = async () => {
