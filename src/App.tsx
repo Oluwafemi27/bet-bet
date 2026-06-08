@@ -31,6 +31,7 @@ import Dashboard from "./pages/admin/dashboard/Dashboard";
 
 // User Management
 import UserList from "./pages/admin/users/UserList";
+import UserDetail from "./pages/admin/users/UserDetail";
 import BannedUsers from "./pages/admin/users/BannedUsers";
 import UserSegments from "./pages/admin/users/UserSegments";
 
@@ -145,6 +146,7 @@ const App = () => (
                   
                   {/* User Management */}
                   <Route path="users/list" element={<UserList />} />
+                  <Route path="users/:id" element={<UserDetail />} />
                   <Route path="users/banned" element={<BannedUsers />} />
                   <Route path="users/segments" element={<UserSegments />} />
 

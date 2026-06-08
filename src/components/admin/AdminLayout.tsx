@@ -24,11 +24,20 @@ import {
   Bell,
   Clock,
   Menu,
+  HelpCircle,
+  ChevronDown,
 } from "lucide-react";
 import { useAuth } from "@/contexts/AuthContext";
 import { useToast } from "@/hooks/use-toast";
 import { useIsMobile } from "@/hooks/use-mobile";
 import { Sheet, SheetContent, SheetTrigger } from "@/components/ui/sheet";
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuTrigger,
+  DropdownMenuSeparator,
+} from "@/components/ui/dropdown-menu";
 
 interface NavItem {
   id: string;
@@ -449,13 +458,35 @@ export const AdminLayout: React.FC = () => {
             </div>
           </div>
           <div className="flex items-center gap-2 md:gap-4">
-            <Button
-              variant="ghost"
-              size="icon"
-              className="h-9 w-9 md:h-10 md:w-10 hover:bg-primary/10"
-            >
-              <Bell className="h-5 w-5" />
-            </Button>
+            <DropdownMenu>
+              <DropdownMenuTrigger asChild>
+                <Button
+                  variant="ghost"
+                  size="sm"
+                  className="h-9 md:h-10 gap-2 hover:bg-primary/10"
+                >
+                  <Bell className="h-5 w-5" />
+                  <span className="hidden sm:inline text-sm">Menu</span>
+                  <ChevronDown className="h-4 w-4" />
+                </Button>
+              </DropdownMenuTrigger>
+              <DropdownMenuContent align="end" className="w-56">
+                <DropdownMenuItem onClick={() => navigate("/admin/cms/notifications")}>
+                  <Bell className="h-4 w-4 mr-2" />
+                  <span>Notifications</span>
+                </DropdownMenuItem>
+                <DropdownMenuSeparator />
+                <DropdownMenuItem onClick={() => navigate("/admin/settings/general")}>
+                  <Settings className="h-4 w-4 mr-2" />
+                  <span>Settings</span>
+                </DropdownMenuItem>
+                <DropdownMenuSeparator />
+                <DropdownMenuItem onClick={() => navigate("/admin/support/tickets")}>
+                  <HelpCircle className="h-4 w-4 mr-2" />
+                  <span>Support</span>
+                </DropdownMenuItem>
+              </DropdownMenuContent>
+            </DropdownMenu>
             {isMobile && (
               <Button
                 variant="ghost"

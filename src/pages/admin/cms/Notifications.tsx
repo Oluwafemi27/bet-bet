@@ -3,7 +3,24 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { useToast } from "@/hooks/use-toast";
 import { Skeleton } from "@/components/ui/skeleton";
-import { Plus, Edit, Trash2, Bell, Send } from "lucide-react";
+import { Plus, Edit, Trash2, Bell, Send, X } from "lucide-react";
+import { Input } from "@/components/ui/input";
+import { Textarea } from "@/components/ui/textarea";
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogHeader,
+  DialogTitle,
+  DialogTrigger,
+} from "@/components/ui/dialog";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
 
 interface Notification {
   id: string;
@@ -17,6 +34,13 @@ interface Notification {
 const Notifications: React.FC = () => {
   const [notifications, setNotifications] = useState<Notification[]>([]);
   const [loading, setLoading] = useState(true);
+  const [isDialogOpen, setIsDialogOpen] = useState(false);
+  const [formData, setFormData] = useState({
+    title: "",
+    message: "",
+    recipient: "all",
+  });
+  const [sending, setSending] = useState(false);
   const { toast } = useToast();
 
   useEffect(() => {
@@ -33,6 +57,34 @@ const Notifications: React.FC = () => {
     }
   };
 
+  const handleSendNotification = async () => {
+    if (!formData.title.trim() || !formData.message.trim()) {
+      toast({ title: "Please fill in all fields", variant: "destructive" });
+      return;
+    }
+
+    setSending(true);
+    try {
+      const newNotification: Notification = {
+        id: Date.now().toString(),
+        title: formData.title,
+        message: formData.message,
+        recipient: formData.recipient,
+        status: "sent",
+        sent_at: new Date().toISOString(),
+      };
+
+      setNotifications([newNotification, ...notifications]);
+      toast({ title: "Notification sent successfully" });
+      setFormData({ title: "", message: "", recipient: "all" });
+      setIsDialogOpen(false);
+    } catch (err: any) {
+      toast({ title: "Error sending notification", description: err.message, variant: "destructive" });
+    } finally {
+      setSending(false);
+    }
+  };
+
   if (loading) {
     return <Skeleton className="h-96 w-full" />;
   }
@@ -46,13 +98,86 @@ const Notifications: React.FC = () => {
           </div>
           Notifications
         </h1>
-        <Button
-          className="gap-2"
-          onClick={() => toast({ title: "Send Notification dialog not yet implemented", description: "This feature is coming soon." })}
-        >
-          <Plus className="h-4 w-4" />
-          Send Notification
-        </Button>
+        <Dialog open={isDialogOpen} onOpenChange={setIsDialogOpen}>
+          <DialogTrigger asChild>
+            <Button className="gap-2">
+              <Plus className="h-4 w-4" />
+              Send Notification
+            </Button>
+          </DialogTrigger>
+          <DialogContent className="sm:max-w-md">
+            <DialogHeader>
+              <DialogTitle>Send Notification</DialogTitle>
+              <DialogDescription>
+                Create and send a notification to your users
+              </DialogDescription>
+            </DialogHeader>
+            <div className="space-y-4">
+              <div>
+                <label className="text-sm font-medium mb-2 block">Title</label>
+                <Input
+                  placeholder="Notification title"
+                  value={formData.title}
+                  onChange={(e) => setFormData({ ...formData, title: e.target.value })}
+                  disabled={sending}
+                />
+              </div>
+
+              <div>
+                <label className="text-sm font-medium mb-2 block">Message</label>
+                <Textarea
+                  placeholder="Notification message"
+                  value={formData.message}
+                  onChange={(e) => setFormData({ ...formData, message: e.target.value })}
+                  disabled={sending}
+                  className="min-h-24"
+                />
+              </div>
+
+              <div>
+                <label className="text-sm font-medium mb-2 block">Send To</label>
+                <Select value={formData.recipient} onValueChange={(value) => setFormData({ ...formData, recipient: value })} disabled={sending}>
+                  <SelectTrigger>
+                    <SelectValue />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="all">All Users</SelectItem>
+                    <SelectItem value="active">Active Users</SelectItem>
+                    <SelectItem value="inactive">Inactive Users</SelectItem>
+                  </SelectContent>
+                </Select>
+              </div>
+
+              <div className="flex gap-3 pt-4">
+                <Button
+                  variant="outline"
+                  onClick={() => setIsDialogOpen(false)}
+                  disabled={sending}
+                  className="flex-1"
+                >
+                  Cancel
+                </Button>
+                <Button
+                  onClick={handleSendNotification}
+                  disabled={sending}
+                  className="flex-1 gap-2"
+                >
+                  {sending ? (
+                    <>
+                      <div className="h-4 w-4 animate-spin rounded-full border-2 border-white border-t-transparent" />
+                      Sending...
+                    </>
+                  ) : (
+                    <>
+                      <Send className="h-4 w-4" />
+                      Send
+                    </>
+                  )}
+                </Button>
+              </div>
+            </div>
+          </DialogContent>
+        </Dialog>
       </div>
 
       <Card className="border border-border/50 shadow-sm overflow-hidden">
