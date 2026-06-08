@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 import { useAuth } from "@/contexts/AuthContext";
 import Layout from "@/components/layout/Layout";
@@ -7,6 +7,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 import { Label } from "@/components/ui/label";
+import { Skeleton } from "@/components/ui/skeleton";
 import { useToast } from "@/hooks/use-toast";
 import { supabase } from "@/integrations/supabase/client";
 import {
@@ -24,16 +25,57 @@ import {
 } from "lucide-react";
 import { Collapsible, CollapsibleContent, CollapsibleTrigger } from "@/components/ui/collapsible";
 
+interface SupportTicket {
+  id: string;
+  subject: string;
+  category: string;
+  status: string;
+  created_at: string;
+  message: string;
+}
+
 const Support = () => {
-  const { user } = useAuth();
+  const { user, loading } = useAuth();
   const navigate = useNavigate();
   const { toast } = useToast();
   const [isSubmitting, setIsSubmitting] = useState(false);
+  const [isLoadingTickets, setIsLoadingTickets] = useState(false);
+  const [tickets, setTickets] = useState<SupportTicket[]>([]);
   const [formData, setFormData] = useState({
     subject: "",
     category: "general",
     message: "",
   });
+
+  useEffect(() => {
+    if (!loading && !user) {
+      navigate("/login");
+    } else if (!loading && user) {
+      loadTickets();
+    }
+  }, [user, loading, navigate]);
+
+  const loadTickets = async () => {
+    try {
+      setIsLoadingTickets(true);
+      const { data, error } = await supabase
+        .from("support_tickets")
+        .select("*")
+        .eq("user_id", user?.id)
+        .order("created_at", { ascending: false });
+
+      if (error) throw error;
+      setTickets(data || []);
+    } catch (error) {
+      console.error("Error loading support tickets:", error);
+      toast({
+        title: "Failed to load support tickets",
+        variant: "destructive",
+      });
+    } finally {
+      setIsLoadingTickets(false);
+    }
+  };
 
   const faqs = [
     {
@@ -144,6 +186,7 @@ const Support = () => {
 
       toast({ title: "Support ticket submitted successfully!" });
       setFormData({ subject: "", category: "general", message: "" });
+      loadTickets(); // Reload tickets after submission
     } catch (error) {
       console.error("Error submitting support ticket:", error);
       toast({
@@ -319,6 +362,58 @@ const Support = () => {
             ))}
           </CardContent>
         </Card>
+
+        {/* Support Tickets History */}
+        {user && (
+          <Card>
+            <CardHeader>
+              <CardTitle>Your Support Tickets</CardTitle>
+            </CardHeader>
+            <CardContent>
+              {isLoadingTickets ? (
+                <div className="space-y-2">
+                  {Array.from({ length: 3 }).map((_, i) => (
+                    <Skeleton key={i} className="h-16 w-full rounded-lg" />
+                  ))}
+                </div>
+              ) : tickets.length === 0 ? (
+                <p className="text-sm text-muted-foreground text-center py-8">
+                  No support tickets yet
+                </p>
+              ) : (
+                <div className="space-y-3">
+                  {tickets.map((ticket) => (
+                    <div key={ticket.id} className="rounded-lg border border-border p-4 hover:bg-secondary/50 transition-colors">
+                      <div className="flex items-start justify-between gap-4">
+                        <div className="flex-1">
+                          <h4 className="font-semibold">{ticket.subject}</h4>
+                          <p className="text-sm text-muted-foreground mt-1">{ticket.message}</p>
+                          <div className="flex items-center gap-4 mt-3 text-xs text-muted-foreground">
+                            <span className="capitalize px-2 py-1 rounded-full bg-secondary">
+                              {ticket.category}
+                            </span>
+                            <span>{new Date(ticket.created_at).toLocaleDateString()}</span>
+                          </div>
+                        </div>
+                        <span
+                          className={`px-3 py-1 rounded-full text-xs font-medium whitespace-nowrap ${
+                            ticket.status === "resolved"
+                              ? "bg-green-500/20 text-green-600"
+                              : ticket.status === "in_progress"
+                              ? "bg-blue-500/20 text-blue-600"
+                              : "bg-yellow-500/20 text-yellow-600"
+                          }`}
+                        >
+                          {ticket.status}
+                        </span>
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              )}
+            </CardContent>
+          </Card>
+        )}
 
         {/* Contact Form */}
         <Card>

@@ -30,8 +30,35 @@ const Settings = () => {
   useEffect(() => {
     if (!loading && !user) {
       navigate("/login");
+    } else if (!loading && user) {
+      loadSettings();
     }
   }, [user, loading, navigate]);
+
+  const loadSettings = async () => {
+    try {
+      const { data, error } = await supabase
+        .from("user_settings")
+        .select("*")
+        .eq("user_id", user?.id)
+        .single();
+
+      if (error && error.code !== "PGRST116") throw error; // PGRST116 = no rows found
+
+      if (data) {
+        setSettings({
+          emailNotifications: data.email_notifications ?? true,
+          pushNotifications: data.push_notifications ?? true,
+          marketingEmails: data.marketing_emails ?? false,
+          betReminders: data.bet_reminders ?? true,
+          oddChanges: data.odd_changes ?? true,
+          twoFactorEnabled: data.two_factor_enabled ?? false,
+        });
+      }
+    } catch (error) {
+      console.error("Error loading settings:", error);
+    }
+  };
 
   const toggleTheme = () => {
     setIsDark(!isDark);
@@ -52,7 +79,12 @@ const Settings = () => {
         .upsert(
           {
             user_id: user?.id,
-            ...newSettings,
+            email_notifications: newSettings.emailNotifications,
+            push_notifications: newSettings.pushNotifications,
+            marketing_emails: newSettings.marketingEmails,
+            bet_reminders: newSettings.betReminders,
+            odd_changes: newSettings.oddChanges,
+            two_factor_enabled: newSettings.twoFactorEnabled,
           },
           { onConflict: "user_id" }
         );
