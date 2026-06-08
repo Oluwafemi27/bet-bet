@@ -13,6 +13,7 @@ interface User {
   email: string;
   balance: number;
   created_at: string;
+  status?: string;
 }
 
 import { AdminPageShell } from "@/components/admin/AdminPageShell";
@@ -61,15 +62,17 @@ const UserList: React.FC = () => {
     toast({ title: "Exported successfully" });
   };
 
-  const handleStatusChange = async (userId: string, newStatus: string) => {
+  const handleStatusChange = async (userId: string, currentStatus: string | undefined) => {
+    const newStatus = currentStatus === 'banned' ? 'active' : 'banned';
     try {
       const { error } = await supabase
         .from("profiles")
         .update({ status: newStatus })
         .eq("id", userId);
-      
+
       if (error) throw error;
-      toast({ title: `User ${newStatus === 'banned' ? 'banned' : 'updated'} successfully` });
+      toast({ title: `User ${newStatus === 'banned' ? 'banned' : 'unbanned'} successfully` });
+      loadUsers();
     } catch (err: any) {
       toast({ title: "Error updating status", description: err.message, variant: "destructive" });
     }
@@ -223,11 +226,15 @@ const UserList: React.FC = () => {
                           <Button
                             size="sm"
                             variant="outline"
-                            className="h-8 text-xs border-red-200/50 hover:border-red-400/50 hover:bg-red-50/20 gap-1.5"
-                            onClick={() => handleStatusChange(user.id, 'banned')}
+                            className={`h-8 text-xs gap-1.5 ${
+                              user.status === 'banned'
+                                ? 'border-green-200/50 hover:border-green-400/50 hover:bg-green-50/20'
+                                : 'border-red-200/50 hover:border-red-400/50 hover:bg-red-50/20'
+                            }`}
+                            onClick={() => handleStatusChange(user.id, user.status)}
                           >
                             <Lock className="h-3.5 w-3.5" />
-                            Ban
+                            {user.status === 'banned' ? 'Unban' : 'Ban'}
                           </Button>
                           <Button
                             size="icon"
