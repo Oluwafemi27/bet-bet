@@ -8,7 +8,7 @@ interface MatchCardProps {
   homeLogo?: string;
   awayLogo?: string;
   homeOdds: number;
-  drawOdds: number;
+  drawOdds?: number;
   awayOdds: number;
   league?: string;
   isLive?: boolean;
@@ -46,15 +46,17 @@ const MatchCard = ({ id, homeTeam, awayTeam, homeLogo, awayLogo, homeOdds, drawO
         </div>
       </div>
 
-      <div className="grid grid-cols-3 gap-2">
+      <div className={drawOdds !== undefined ? "grid grid-cols-3 gap-2" : "grid grid-cols-2 gap-2"}>
         <OddsButton
           label="1"
           selection={{ id: `${id}-home`, matchName, market: "Match Winner", selection: homeTeam, odds: homeOdds }}
         />
-        <OddsButton
-          label="X"
-          selection={{ id: `${id}-draw`, matchName, market: "Match Winner", selection: "Draw", odds: drawOdds }}
-        />
+        {drawOdds !== undefined && (
+          <OddsButton
+            label="X"
+            selection={{ id: `${id}-draw`, matchName, market: "Match Winner", selection: "Draw", odds: drawOdds }}
+          />
+        )}
         <OddsButton
           label="2"
           selection={{ id: `${id}-away`, matchName, market: "Match Winner", selection: awayTeam, odds: awayOdds }}
